@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <title>FleetIQ Driver</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0e1a;color:#f1f5f9;max-width:480px;margin:0 auto;min-height:100vh}
+    :root{--bg:#0a0e1a;--s1:#111827;--s2:#1a2235;--bd:#1f2d45;--acc:#f59e0b;--bl:#3b82f6;--gr:#10b981;--rd:#ef4444;--tx:#f1f5f9;--mu:#64748b;--r:12px}
+
+    /* ── SETUP SCREEN ── */
+    #setupScreen{position:fixed;inset:0;background:#0a0e1a;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px}
+    .setup-logo{font-size:36px;font-weight:900;color:var(--acc);margin-bottom:8px}
+    .setup-logo span{color:#f1f5f9}
+    .setup-sub{color:var(--mu);font-size:14px;margin-bottom:40px}
+    .setup-card{background:var(--s1);border:1px solid var(--bd);border-radius:16px;padding:24px;width:100%}
+    .setup-title{font-size:18px;font-weight:700;margin-bottom:20px;color:var(--acc)}
+    .sfield{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+    .slabel{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--mu)}
+    input,select{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:10px;color:#f1f5f9;padding:13px 14px;font-size:16px;outline:none}
+    input:focus,select:focus{border-color:var(--acc)}
+    .btn{border:none;border-radius:12px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;width:100%;transition:all .15s}
+    .btn.primary{background:var(--acc);color:#000}
+    .btn.ghost{background:transparent;border:1px solid var(--bd);color:var(--mu);font-weight:500}
+    .btn.danger{background:var(--rd);color:#fff}
+    .btn.green{background:var(--gr);color:#000}
+    .btn:disabled{opacity:.4;pointer-events:none}
+
+    /* ── PTI BLOCKER ── */
+    #ptiBlocker{position:fixed;inset:0;background:#0a0e1a;z-index:100;overflow-y:auto;padding-bottom:40px;display:none}
+    #ptiBlocker.show{display:block}
+    .pti-header{background:linear-gradient(135deg,#1a0a00,#2d1200);border-bottom:2px solid var(--acc);padding:20px;text-align:center}
+    .pti-header h1{font-size:22px;font-weight:900;color:var(--acc);margin-bottom:4px}
+    .pti-header p{color:var(--mu);font-size:13px}
+    .pti-section{margin:16px}
+    .pti-section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mu);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--bd)}
+    .pti-item{display:flex;align-items:center;gap:14px;background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;transition:all .15s;-webkit-user-select:none;user-select:none}
+    .pti-item.checked{border-color:var(--gr);background:rgba(16,185,129,.08)}
+    .pti-item.failed{border-color:var(--rd);background:rgba(239,68,68,.08)}
+    .pti-check{width:28px;height:28px;border-radius:8px;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:all .15s}
+    .pti-item.checked .pti-check{background:var(--gr);border-color:var(--gr);color:#000}
+    .pti-item.failed .pti-check{background:var(--rd);border-color:var(--rd);color:#fff}
+    .pti-item-text{flex:1}
+    .pti-item-name{font-weight:600;font-size:15px}
+    .pti-item-desc{font-size:12px;color:var(--mu);margin-top:2px}
+    .pti-fail-btn{font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--rd);background:transparent;color:var(--rd);cursor:pointer}
+    .pti-odo-card{margin:16px;background:var(--s1);border:1px solid var(--acc);border-radius:14px;padding:16px}
+    .pti-odo-label{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--acc);margin-bottom:8px}
+    .pti-progress{margin:16px;background:var(--s2);border-radius:99px;height:8px;overflow:hidden}
+    .pti-progress-bar{height:100%;background:var(--gr);border-radius:99px;transition:width .3s}
+    .pti-progress-text{margin:0 16px 16px;font-size:12px;color:var(--mu);text-align:right}
+    .pti-issue-card{margin:16px;background:rgba(239,68,68,.1);border:1px solid var(--rd);border-radius:12px;padding:14px;display:none}
+    .pti-issue-card.show{display:block}
+    .pti-submit-area{margin:16px}
+    .pti-status-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:99px;font-size:13px;font-weight:700}
+    .badge-ok{background:rgba(16,185,129,.15);color:var(--gr)}
+    .badge-warn{background:rgba(245,158,11,.15);color:var(--acc)}
+    .badge-fail{background:rgba(239,68,68,.15);color:var(--rd)}
+
+    /* ── MAIN APP ── */
+    #app{display:none}
+    #app.show{display:block}
+    .hdr{position:sticky;top:0;z-index:20;background:linear-gradient(135deg,#0a0e1a,#111827);border-bottom:1px solid var(--bd);padding:14px 16px}
+    .hdr-row{display:flex;justify-content:space-between;align-items:center}
+    .logo{font-size:20px;font-weight:900;color:var(--acc)}.logo span{color:#f1f5f9}.logo small{font-size:10px;color:var(--mu);margin-left:5px}
+    .driver-badge{background:var(--s2);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--mu)}
+    .driver-badge strong{color:var(--tx)}
+    .nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);display:flex;width:100%;max-width:480px;background:var(--s1);border-top:1px solid var(--bd);z-index:30}
+    .navbtn{flex:1;background:none;border:none;color:var(--mu);font-size:10px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+    .navbtn .icon{font-size:22px}.navbtn.active{color:var(--acc)}
+    .page{display:none;padding-bottom:80px}.page.active{display:block}
+    .card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin:12px 16px}
+    .section-title{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu);margin:16px 16px 8px}
+    .label{font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--mu);margin-bottom:5px}
+    .value{font-size:26px;font-weight:800}
+    .green{color:var(--gr)}.red{color:var(--rd)}.amber{color:var(--acc)}.muted{font-size:12px;color:var(--mu)}
+    .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+    .fg{display:flex;flex-direction:column;gap:5px}
+    .full{grid-column:1/-1}
+    .line{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--bd)}
+    .line:last-child{border-bottom:none}
+    .item{background:var(--s1);border:1px solid var(--bd);border-radius:12px;margin:8px 16px;overflow:hidden}
+    .item-inner{display:flex;justify-content:space-between;gap:10px;padding:12px}
+    .item-title{font-weight:700;font-size:15px}
+    .item-actions{display:flex;border-top:1px solid var(--bd);background:var(--s2)}
+    .item-actions button{flex:1;background:none;border:none;padding:10px;color:var(--tx);font-weight:600;cursor:pointer;font-size:13px}
+    .item-actions button:last-child{border-left:1px solid var(--bd);color:var(--rd)}
+    .empty{color:var(--mu);text-align:center;padding:30px;font-size:14px}
+    .toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%);background:var(--gr);color:#000;padding:10px 18px;border-radius:999px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s;z-index:200;white-space:nowrap}
+    .toast.show{opacity:1}.toast.err{background:var(--rd);color:#fff}.toast.warn{background:var(--acc);color:#000}
+    .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px}
+    .stat-card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:12px;text-align:center}
+    .stat-val{font-size:20px;font-weight:800;margin-top:4px}
+    .sync-row{display:flex;align-items:center;gap:8px;margin:0 16px 12px}
+    .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--mu)}
+    .sync-dot.ok{background:var(--gr)}.sync-dot.err{background:var(--rd)}.sync-dot.busy{background:var(--acc)}
+    .week-chip{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:none;margin-right:6px}
+    .week-chip.done{background:rgba(16,185,129,.15);color:var(--gr)}
+    .week-chip.miss{background:rgba(239,68,68,.15);color:var(--rd)}
+    .pti-history-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd)}
+    input[type=number]::-webkit-inner-spin-button{opacity:1}
+
+    /* ── MODAL ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:50;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+    .modal-overlay.open{opacity:1;pointer-events:all}
+    .modal{background:var(--s1);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;transform:translateY(100%);transition:transform .25s}
+    .modal-overlay.open .modal{transform:translateY(0)}
+    .modal-title{font-size:18px;font-weight:800;margin-bottom:16px;color:var(--acc)}
+    .modal-close{float:right;background:none;border:none;color:var(--mu);font-size:24px;cursor:pointer;line-height:1}
+    .mactions{display:flex;gap:8px;margin-top:16px}
+    .mactions .btn{flex:1;padding:12px}
+    .preview-box{background:var(--s2);border-radius:10px;padding:12px;margin-top:12px}
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ SETUP SCREEN ══════════════ -->
+<div id="setupScreen">
+  <div class="setup-logo">FLEET<span>IQ</span></div>
+  <div class="setup-sub">Driver App</div>
+  <div class="setup-card">
+    <div class="setup-title">🏢 Company Info</div>
+    <div class="sfield">
+      <div class="slabel">Company Name</div>
+      <input id="setupCompany" placeholder="IZZI Motors LLC" maxlength="60">
+    </div>
+    <div class="sfield">
+      <div class="slabel">Truck Name / Make</div>
+      <input id="setupTruckName" placeholder="Mack Anthem" maxlength="40">
+    </div>
+    <div class="sfield" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <div class="slabel">Unit Number</div>
+        <input id="setupUnit" placeholder="1919" maxlength="20">
+      </div>
+      <div>
+        <div class="slabel">License Plate</div>
+        <input id="setupPlate" placeholder="TX-1234" maxlength="15">
+      </div>
+    </div>
+
+    <div class="setup-title" style="margin-top:20px">👤 Driver Info</div>
+    <div class="sfield">
+      <div class="slabel">Your Name</div>
+      <input id="setupName" placeholder="John Smith" maxlength="40">
+    </div>
+    <div class="sfield">
+      <div class="slabel">Team Driver (optional)</div>
+      <input id="setupTeamDriver" placeholder="Jane Smith (leave empty if solo)" maxlength="40">
+    </div>
+    <div class="sfield">
+      <div class="slabel">Pay Type</div>
+      <select id="setupPayType" onchange="toggleSetupRate()">
+        <option value="cpm">CPM — per mile</option>
+        <option value="gross_percent">% of Gross</option>
+      </select>
+    </div>
+    <div class="sfield" id="setupCpmRow">
+      <div class="slabel">Rate $/mile</div>
+      <input type="number" step="0.01" id="setupCpmRate" placeholder="0.65">
+    </div>
+    <div class="sfield" id="setupGrossRow" style="display:none">
+      <div class="slabel">Gross %</div>
+      <input type="number" step="0.1" id="setupGrossPct" placeholder="28">
+    </div>
+    <div class="sfield" id="setupTeamRateRow" style="display:none">
+      <div class="slabel">Team Driver Rate (same type)</div>
+      <input type="number" step="0.01" id="setupTeamRate" placeholder="0.65">
+    </div>
+    <div class="sfield">
+      <div class="slabel">Miles Base</div>
+      <select id="setupCpmBase">
+        <option value="loaded">Loaded miles only</option>
+        <option value="total">Total miles (loaded + deadhead)</option>
+      </select>
+    </div>
+
+    <div class="setup-title" style="margin-top:20px">⚙️ App Settings</div>
+    <div class="sfield">
+      <div class="slabel">Sync URL (Fleet Manager Google Sheet)</div>
+      <input id="setupSyncUrl" value="https://script.google.com/macros/s/AKfycbxHmE9en-hPO1kO4iPhTWwRah7iN-ZvtZlxGre44wrEleW5WKf4asZ-vj8hdr5uPERs2Q/exec">
+    </div>
+    <div class="sfield">
+      <div class="slabel">PTI Schedule</div>
+      <select id="setupPtiSchedule">
+        <option value="daily">Daily (every day)</option>
+        <option value="weekly">Weekly (every Monday)</option>
+      </select>
+    </div>
+    <button class="btn primary" style="margin-top:8px" onclick="saveSetup()">Start Driving →</button>
+  </div>
+</div>
+
+<!-- ══════════════ PTI BLOCKER ══════════════ -->
+<div id="ptiBlocker">
+  <div class="pti-header">
+    <h1>🔍 Pre-Trip Inspection</h1>
+    <p id="ptiHeaderSub">Complete before driving today</p>
+  </div>
+
+  <div style="margin:16px;display:flex;align-items:center;justify-content:space-between">
+    <span id="ptiStatusBadge" class="pti-status-badge badge-warn">⏳ In Progress</span>
+    <span class="muted" id="ptiDate" style="font-size:13px"></span>
+  </div>
+
+  <div class="pti-progress">
+    <div class="pti-progress-bar" id="ptiProgressBar" style="width:0%"></div>
+  </div>
+  <div class="pti-progress-text" id="ptiProgressText">0 / 0 checked</div>
+
+  <!-- DAILY ITEMS -->
+  <div class="pti-section" id="ptiDailySection">
+    <div class="pti-section-title">🚛 Daily Check</div>
+    <div id="ptiDailyItems"></div>
+  </div>
+
+  <!-- WEEKLY ITEMS (shown on Mondays or weekly schedule) -->
+  <div class="pti-section" id="ptiWeeklySection" style="display:none">
+    <div class="pti-section-title">📋 Weekly Check</div>
+    <div id="ptiWeeklyItems"></div>
+  </div>
+
+  <!-- ODOMETER -->
+  <div class="pti-odo-card">
+    <div class="pti-odo-label">📍 Odometer Reading *</div>
+    <input type="number" id="ptiOdometer" placeholder="e.g. 485000" style="margin-top:4px">
+    <div class="muted" style="margin-top:6px;font-size:11px">Required — used for maintenance tracking</div>
+  </div>
+
+  <!-- ISSUES -->
+  <div class="pti-issue-card" id="ptiIssueCard">
+    <div style="font-weight:700;color:var(--rd);margin-bottom:8px">⚠️ Describe Issues</div>
+    <textarea id="ptiIssueText" style="width:100%;background:var(--s2);border:1px solid var(--rd);border-radius:8px;color:#f1f5f9;padding:10px;font-size:14px;min-height:80px;resize:vertical" placeholder="Describe what you found..."></textarea>
+  </div>
+
+  <div class="pti-submit-area">
+    <button class="btn primary" id="ptiSubmitBtn" onclick="submitPTI()" disabled>
+      ✅ Complete PTI & Start
+    </button>
+    <div class="muted" style="text-align:center;margin-top:10px;font-size:12px">All items must be checked before submitting</div>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN APP ══════════════ -->
+<div id="app">
+  <div class="hdr">
+    <div class="hdr-row">
+      <div class="logo">FLEET<span>IQ</span><small>Driver</small></div>
+      <div class="driver-badge">
+        <strong id="hdrDriverName">—</strong> · <span id="hdrUnitNum">—</span>
+      </div>
+    </div>
+    <div id="hdrCompanyRow" style="margin-top:4px;font-size:11px;color:var(--mu);display:none">
+      <span id="hdrCompany"></span> · <span id="hdrTruck"></span> · <span id="hdrPlate"></span>
+    </div>
+    <div id="hdrTeamRow" style="margin-top:2px;font-size:11px;color:var(--acc);display:none">
+      👥 Team: <span id="hdrTeam"></span>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div id="page-home" class="page active">
+    <div class="card" style="margin-top:16px">
+      <div class="label">This Week</div>
+      <div class="value green" id="homeWeekNet">$0.00</div>
+      <div class="muted" id="homeWeekSub">gross $0 · 0 miles · 0 loads</div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="label">My Pay</div><div class="stat-val amber" id="homeMyPay">$0.00</div></div>
+      <div class="stat-card"><div class="label">Gross</div><div class="stat-val" id="homeGross">$0.00</div></div>
+      <div class="stat-card"><div class="label">Loaded mi</div><div class="stat-val" id="homeLoadedMi">0</div></div>
+      <div class="stat-card"><div class="label">Dead mi</div><div class="stat-val" id="homeDeadMi">0</div></div>
+    </div>
+
+    <div class="sync-row" style="margin-top:16px">
+      <div class="sync-dot" id="syncDot"></div>
+      <span class="muted" id="syncStatus" style="font-size:12px">Not synced</span>
+      <button onclick="doSync()" style="margin-left:auto;background:var(--s2);border:none;border-radius:8px;color:var(--tx);padding:6px 12px;font-size:12px;cursor:pointer">☁️ Sync Now</button>
+    </div>
+
+    <div class="section-title">Recent Loads</div>
+    <div id="homeLoads"></div>
+
+    <div class="section-title">PTI Status</div>
+    <div class="card" id="homePtiStatus"></div>
+  </div>
+
+  <!-- ADD LOAD -->
+  <div id="page-load" class="page">
+    <div class="card" style="margin-top:16px">
+      <div style="font-size:16px;font-weight:800;margin-bottom:16px;color:var(--acc)">➕ Add Load</div>
+      <input type="hidden" id="loadEditId">
+      <div class="frow">
+        <div class="fg"><div class="label">Load ID *</div><input id="loadId" placeholder="e.g. DSR12345"></div>
+        <div class="fg"><div class="label">Pickup Date</div><input type="date" id="pickupDate"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><div class="label">Loaded Miles *</div><input type="number" id="loadedMiles" oninput="calcPreview()"></div>
+        <div class="fg"><div class="label">Deadhead Miles</div><input type="number" id="deadMiles" value="0" oninput="calcPreview()"></div>
+      </div>
+      <div class="frow">
+        <div class="fg full"><div class="label">Gross $ *</div><input type="text" id="grossInput" oninput="maskGross(this);calcPreview()" placeholder="0.00"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><div class="label">Delivery Date</div><input type="date" id="deliveryDate"></div>
+        <div class="fg"><div class="label">Notes</div><input id="loadNotes" placeholder="optional"></div>
+      </div>
+      <div class="preview-box" id="loadPreview"></div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn primary" id="saveLoadBtn" onclick="saveLoad()">Add Load</button>
+        <button class="btn ghost" id="cancelEditBtn" style="display:none" onclick="resetLoadForm()">Cancel</button>
+      </div>
+    </div>
+
+    <div class="section-title">My Loads</div>
+    <div id="allLoads"></div>
+  </div>
+
+  <!-- PTI -->
+  <div id="page-pti" class="page">
+    <div class="card" style="margin-top:16px">
+      <div style="font-size:16px;font-weight:800;margin-bottom:4px;color:var(--acc)">🔍 PTI History</div>
+      <div class="muted" style="margin-bottom:14px">Pre-Trip Inspection log</div>
+      <div id="ptiHistory"></div>
+    </div>
+    <div class="section-title">Odometer Log</div>
+    <div class="card" id="odoLog"></div>
+    <div style="margin:0 16px">
+      <button class="btn primary" onclick="forcePTI()">Run PTI Now</button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div id="page-stats" class="page">
+    <div class="card" style="margin-top:16px">
+      <div class="label">Period</div>
+      <select id="statsPeriod" onchange="renderStats()" style="margin-bottom:12px">
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+        <option value="all">All Time</option>
+      </select>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="label">Total Gross</div><div class="stat-val" id="stGross">$0</div></div>
+      <div class="stat-card"><div class="label">My Pay</div><div class="stat-val amber" id="stPay">$0</div></div>
+      <div class="stat-card"><div class="label">Loaded mi</div><div class="stat-val" id="stLoadedMi">0</div></div>
+      <div class="stat-card"><div class="label">Dead mi</div><div class="stat-val" id="stDeadMi">0</div></div>
+      <div class="stat-card"><div class="label">Loads</div><div class="stat-val" id="stLoads">0</div></div>
+      <div class="stat-card"><div class="label">$/load avg</div><div class="stat-val" id="stAvgLoad">$0</div></div>
+      <div class="stat-card"><div class="label">$/mile (gross)</div><div class="stat-val" id="stGpm">$0</div></div>
+      <div class="stat-card"><div class="label">Pay/mile</div><div class="stat-val amber" id="stPpm">$0</div></div>
+    </div>
+    <div class="card" style="margin-top:4px">
+      <div class="label" style="margin-bottom:10px">Weekly Breakdown</div>
+      <div id="weeklyBreakdown"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="page-settings" class="page">
+    <div class="card" style="margin-top:16px">
+      <div style="font-size:16px;font-weight:800;margin-bottom:16px;color:var(--acc)">⚙️ Settings</div>
+
+      <div style="font-size:13px;font-weight:700;color:var(--mu);margin-bottom:10px">🏢 Company</div>
+      <div class="sfield"><div class="slabel">Company Name</div><input id="setCompany"></div>
+      <div class="sfield"><div class="slabel">Truck Name / Make</div><input id="setTruckName"></div>
+      <div class="sfield" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div><div class="slabel">Unit Number</div><input id="setUnit"></div>
+        <div><div class="slabel">License Plate</div><input id="setPlate"></div>
+      </div>
+
+      <div style="font-size:13px;font-weight:700;color:var(--mu);margin-bottom:10px;margin-top:4px">👤 Driver</div>
+      <div class="sfield"><div class="slabel">Driver Name</div><input id="setName"></div>
+      <div class="sfield"><div class="slabel">Team Driver (leave empty if solo)</div><input id="setTeamDriver" placeholder="optional"></div>
+      <div class="sfield"><div class="slabel">Pay Type</div>
+        <select id="setPayType" onchange="toggleSetRateFields()">
+          <option value="cpm">CPM — per mile</option>
+          <option value="gross_percent">% of Gross</option>
+        </select>
+      </div>
+      <div class="sfield" id="setCpmRow"><div class="slabel">Rate $/mile</div><input type="number" step="0.01" id="setCpmRate"></div>
+      <div class="sfield" id="setGrossRow" style="display:none"><div class="slabel">Gross %</div><input type="number" step="0.1" id="setGrossPct"></div>
+      <div class="sfield" id="setTeamRateRow" style="display:none"><div class="slabel">Team Driver Rate</div><input type="number" step="0.01" id="setTeamRate"></div>
+      <div class="sfield"><div class="slabel">Miles Base</div>
+        <select id="setCpmBase">
+          <option value="loaded">Loaded miles only</option>
+          <option value="total">Total miles</option>
+        </select>
+      </div>
+
+      <div style="font-size:13px;font-weight:700;color:var(--mu);margin-bottom:10px;margin-top:4px">🔧 App</div>
+      <div class="sfield"><div class="slabel">PTI Schedule</div>
+        <select id="setPtiSchedule">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly (Monday)</option>
+        </select>
+      </div>
+      <div class="sfield"><div class="slabel">Sync URL</div><input id="setSyncUrl" placeholder="https://script.google.com/..."></div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn primary" onclick="saveSettings()" style="padding:12px">Save</button>
+        <button class="btn ghost" onclick="doSync()" style="padding:12px">☁️ Sync</button>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:14px;font-weight:700;margin-bottom:12px">Customize PTI Checklist</div>
+      <div id="ptiCustomItems"></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <input id="newPtiItem" placeholder="New item name" style="flex:1">
+        <button onclick="addCustomPtiItem()" style="background:var(--acc);border:none;border-radius:10px;color:#000;padding:10px 16px;font-weight:700;cursor:pointer">+</button>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px">📤 Export & Share</div>
+      <div class="muted" style="margin-bottom:12px;font-size:12px">Download or share your weekly report</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <button class="btn ghost" onclick="exportDriverData('csv')" style="padding:10px">📊 CSV</button>
+        <button class="btn ghost" onclick="exportDriverData('pdf')" style="padding:10px">📄 PDF</button>
+      </div>
+      <div class="muted" style="margin-bottom:8px;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Share via</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <button onclick="shareReport('whatsapp')" style="background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);border-radius:10px;color:#25d366;padding:10px;cursor:pointer;font-size:12px;font-weight:700">
+          💬 WhatsApp
+        </button>
+        <button onclick="shareReport('email')" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);border-radius:10px;color:#3b82f6;padding:10px;cursor:pointer;font-size:12px;font-weight:700">
+          📧 Email
+        </button>
+        <button onclick="shareReport('telegram')" style="background:rgba(0,136,204,.15);border:1px solid rgba(0,136,204,.3);border-radius:10px;color:#0088cc;padding:10px;cursor:pointer;font-size:12px;font-weight:700">
+          ✈️ Telegram
+        </button>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--rd)">Driver Change / Reset</div>
+      <div class="muted" style="margin-bottom:10px;font-size:13px">Синхронизирует все данные с таблицей, затем очищает устройство для нового водителя.</div>
+      <button class="btn danger" onclick="resetApp()">🔄 Reset for New Driver</button>
+    </div>
+  </div>
+
+  <!-- DISPUTES -->
+  <div id="page-disputes" class="page">
+    <div class="card" style="margin-top:16px">
+      <div style="font-size:16px;font-weight:800;margin-bottom:8px;color:var(--acc)">⚖️ Disputed Loads</div>
+      <div class="muted" style="margin-bottom:14px">Amazon cancel/dispute — track pending payments</div>
+      <div id="driverDisputedList"></div>
+    </div>
+    <div class="card" style="background:rgba(59,130,246,.08);border-color:var(--bl);margin-top:0">
+      <div class="slabel" style="color:var(--bl);margin-bottom:10px">➕ Add Dispute</div>
+      <div class="sfield"><div class="slabel">Load ID</div><input id="dDisputeLoadId" placeholder="Load ID"></div>
+      <div class="sfield"><div class="slabel">Amount $</div><input type="number" step="0.01" id="dDisputeAmount" placeholder="175.00"></div>
+      <div class="sfield"><div class="slabel">Note</div><input id="dDisputeNote" placeholder="Reason for dispute"></div>
+      <button class="btn primary" style="margin-top:4px" onclick="addDriverDisputed()">Add Dispute</button>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="navbtn active" data-page="home" onclick="showPage('home',this)"><span class="icon">📊</span><span>Home</span></button>
+    <button class="navbtn" data-page="load" onclick="showPage('load',this)"><span class="icon">➕</span><span>Load</span></button>
+    <button class="navbtn" data-page="pti" onclick="showPage('pti',this)"><span class="icon">🔍</span><span>PTI</span></button>
+    <button class="navbtn" data-page="disputes" onclick="showPage('disputes',this)"><span class="icon">⚖️</span><span>Disputes</span></button>
+    <button class="navbtn" data-page="stats" onclick="showPage('stats',this)"><span class="icon">📈</span><span>Stats</span></button>
+    <button class="navbtn" data-page="settings" onclick="showPage('settings',this)"><span class="icon">⚙️</span><span>Settings</span></button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- ══════════════ SCRIPT ══════════════ -->
+<script>
+const K = 'fiqD_';
+
+// ── DEFAULT PTI ITEMS ──
+const DEFAULT_DAILY = [
+  { id:'tires',    name:'Tires & Wheels',   desc:'Check pressure, condition, lug nuts' },
+  { id:'lights',   name:'Lights',           desc:'Headlights, brake, turn, marker lights' },
+  { id:'brakes',   name:'Brakes',           desc:'Air pressure, brake lines, no leaks' },
+  { id:'mirrors',  name:'Mirrors & Windows',desc:'Clean, properly adjusted' },
+  { id:'coupling', name:'Coupling & 5th Wheel', desc:'Kingpin locked, safety latch' },
+  { id:'cargo',    name:'Cargo Securement', desc:'Doors sealed, load secure' },
+  { id:'gauges',   name:'Gauges & Warning Lights', desc:'Air pressure, oil, temp normal' },
+  { id:'horn',     name:'Horn & Wipers',    desc:'Functional' },
+];
+const DEFAULT_WEEKLY = [
+  { id:'oil',      name:'Engine Oil Level', desc:'Check and top off if needed' },
+  { id:'coolant',  name:'Coolant Level',    desc:'Radiator and overflow reservoir' },
+  { id:'def',      name:'DEF Level',        desc:'Diesel exhaust fluid' },
+  { id:'washer',   name:'Washer Fluid',     desc:'Windshield washer reservoir' },
+  { id:'belts',    name:'Belts & Hoses',    desc:'Visual check for wear or cracks' },
+  { id:'battery',  name:'Battery & Connections', desc:'Clean terminals, no corrosion' },
+];
+
+// ── STATE ──
+let driver = null;
+// driver: { name, teamDriver, teamRate, company, truckName, unitNumber, plate,
+//           payType, cpmRate, grossPercent, cpmBase, syncUrl, ptiSchedule }
+let ptiCustom = [];
+let ptiState = {};
+let loads = [];
+let ptiLog = [];
+let autoSyncTimer = null;
+
+// ── STORAGE ──
+function save(k,v){ localStorage.setItem(K+k, JSON.stringify(v)); }
+function load(k,def){ try{ let v=localStorage.getItem(K+k); return v?JSON.parse(v):def; }catch(e){ return def; } }
+function loadAll(){
+  driver = load('driver', null);
+  ptiCustom = load('ptiCustom', []);
+  loads = load('loads', []);
+  ptiLog = load('ptiLog', []);
+}
+function saveAll(){
+  save('driver', driver);
+  save('ptiCustom', ptiCustom);
+  save('loads', loads);
+  save('ptiLog', ptiLog);
+}
+
+// ── UTILS ──
+function fmt(n){ return '$'+(Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function todayDisplay(){ return new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
+function getWeekKey(dateStr){
+  if(!dateStr) return '';
+  let d = new Date(dateStr+'T12:00:00');
+  let day = d.getDay(); // 0=Sun
+  let diff = (day===0)?-6:1-day; // Monday
+  let mon = new Date(d); mon.setDate(d.getDate()+diff);
+  return mon.toISOString().slice(0,10);
+}
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function toast(msg, type=''){
+  let el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show';
+  if(type==='err') el.classList.add('err');
+  if(type==='warn') el.classList.add('warn');
+  clearTimeout(window._t); window._t=setTimeout(()=>el.className='toast',2500);
+}
+function maskGross(el){
+  let v=el.value.replace(/[^\d]/g,'');
+  if(!v){ el.value=''; return; }
+  el.value=(parseInt(v)/100).toFixed(2);
+}
+function calcDriverPay(gross, loadedMiles, totalMiles){
+  if(!driver) return 0;
+  if(driver.payType==='gross_percent') return gross * (driver.grossPercent||0) / 100;
+  let miles = driver.cpmBase==='total' ? totalMiles : loadedMiles;
+  return miles * (driver.cpmRate||0);
+}
+
+// ── SETUP ──
+function toggleSetupRate(){
+  let pt = document.getElementById('setupPayType').value;
+  document.getElementById('setupCpmRow').style.display = pt==='cpm'?'':'none';
+  document.getElementById('setupGrossRow').style.display = pt==='gross_percent'?'':'none';
+  let hasTeam = document.getElementById('setupTeamDriver').value.trim();
+  document.getElementById('setupTeamRateRow').style.display = hasTeam?'':'none';
+}
+function saveSetup(){
+  let name = document.getElementById('setupName').value.trim();
+  let unit = document.getElementById('setupUnit').value.trim();
+  if(!name||!unit) return toast('Name and Unit are required','err');
+  driver = {
+    name, unitNumber:unit,
+    company: document.getElementById('setupCompany').value.trim(),
+    truckName: document.getElementById('setupTruckName').value.trim(),
+    plate: document.getElementById('setupPlate').value.trim(),
+    teamDriver: document.getElementById('setupTeamDriver').value.trim(),
+    teamRate: parseFloat(document.getElementById('setupTeamRate').value)||0,
+    payType: document.getElementById('setupPayType').value,
+    cpmRate: parseFloat(document.getElementById('setupCpmRate').value)||0,
+    grossPercent: parseFloat(document.getElementById('setupGrossPct').value)||0,
+    cpmBase: document.getElementById('setupCpmBase').value,
+    syncUrl: document.getElementById('setupSyncUrl').value.trim(),
+    ptiSchedule: document.getElementById('setupPtiSchedule').value,
+  };
+  saveAll();
+  document.getElementById('setupScreen').style.display='none';
+  boot();
+}
+
+// ── BOOT ──
+function boot(){
+  if(!driver){ document.getElementById('setupScreen').style.display='flex'; return; }
+  document.getElementById('setupScreen').style.display='none';
+  document.getElementById('hdrDriverName').textContent = driver.name + (driver.teamDriver ? ' + '+driver.teamDriver : '');
+  document.getElementById('hdrUnitNum').textContent = 'Unit '+driver.unitNumber;
+  // company row
+  let compRow = document.getElementById('hdrCompanyRow');
+  if(driver.company||driver.truckName||driver.plate){
+    compRow.style.display='';
+    document.getElementById('hdrCompany').textContent = driver.company||'';
+    document.getElementById('hdrTruck').textContent = driver.truckName||'';
+    document.getElementById('hdrPlate').textContent = driver.plate||'';
+  } else { compRow.style.display='none'; }
+  // team row
+  let teamRow = document.getElementById('hdrTeamRow');
+  if(driver.teamDriver){ teamRow.style.display=''; document.getElementById('hdrTeam').textContent = driver.teamDriver; }
+  else { teamRow.style.display='none'; }
+  if(needsPTI()){ showPTIBlocker(); } else { showApp(); }
+}
+
+// ── PTI LOGIC ──
+function needsPTI(){
+  let t = today();
+  if(driver.ptiSchedule==='daily'){
+    return !ptiLog.find(p=>p.date===t);
+  } else {
+    // weekly — check if this Monday's PTI is done
+    let monKey = getWeekKey(t);
+    return !ptiLog.find(p=>getWeekKey(p.date)===monKey);
+  }
+}
+function getAllPtiItems(){
+  let daily = DEFAULT_DAILY;
+  let custom = ptiCustom.map(x=>({...x, custom:true}));
+  let weekly = DEFAULT_WEEKLY;
+  return { daily:[...daily,...custom], weekly };
+}
+function showPTIBlocker(){
+  document.getElementById('ptiBlocker').classList.add('show');
+  document.getElementById('app').classList.remove('show');
+  ptiState = {};
+  let t = today();
+  document.getElementById('ptiDate').textContent = todayDisplay();
+  let isMonday = new Date().getDay()===1;
+  let showWeekly = isMonday || driver.ptiSchedule==='weekly';
+  document.getElementById('ptiWeeklySection').style.display = showWeekly?'':'none';
+  let {daily, weekly} = getAllPtiItems();
+  renderPTIItems('ptiDailyItems', daily);
+  if(showWeekly) renderPTIItems('ptiWeeklyItems', weekly);
+  updatePTIProgress(showWeekly);
+  document.getElementById('ptiHeaderSub').textContent =
+    driver.ptiSchedule==='daily' ? 'Complete before driving today' :
+    (isMonday ? 'Weekly Monday inspection required' : 'Complete before driving');
+}
+function renderPTIItems(containerId, items){
+  document.getElementById(containerId).innerHTML = items.map(item=>`
+    <div class="pti-item" id="pti_${item.id}" onclick="togglePTIItem('${item.id}')">
+      <div class="pti-check" id="pticheck_${item.id}">○</div>
+      <div class="pti-item-text">
+        <div class="pti-item-name">${escHtml(item.name)}</div>
+        <div class="pti-item-desc">${escHtml(item.desc||'')}</div>
+      </div>
+      <button class="pti-fail-btn" onclick="event.stopPropagation();markFail('${item.id}')">⚠️ Issue</button>
+    </div>
+  `).join('');
+}
+function togglePTIItem(id){
+  if(ptiState[id]==='ok'){ delete ptiState[id]; }
+  else { ptiState[id]='ok'; }
+  updatePTIItemUI(id);
+  updatePTIProgress();
+}
+function markFail(id){
+  ptiState[id] = ptiState[id]==='fail' ? undefined : 'fail';
+  if(!ptiState[id]) delete ptiState[id];
+  updatePTIItemUI(id);
+  updatePTIProgress();
+}
+function updatePTIItemUI(id){
+  let el=document.getElementById('pti_'+id);
+  let chk=document.getElementById('pticheck_'+id);
+  if(!el) return;
+  el.classList.remove('checked','failed');
+  if(ptiState[id]==='ok'){ el.classList.add('checked'); chk.textContent='✓'; }
+  else if(ptiState[id]==='fail'){ el.classList.add('failed'); chk.textContent='✕'; }
+  else { chk.textContent='○'; }
+}
+function updatePTIProgress(showWeekly){
+  let {daily,weekly} = getAllPtiItems();
+  let isMonday = new Date().getDay()===1;
+  let useWeekly = showWeekly!==undefined ? showWeekly : (isMonday||driver.ptiSchedule==='weekly');
+  let allItems = useWeekly ? [...daily,...weekly] : daily;
+  let total = allItems.length;
+  let checked = allItems.filter(x=>ptiState[x.id]==='ok'||ptiState[x.id]==='fail').length;
+  let failed = allItems.filter(x=>ptiState[x.id]==='fail').length;
+  document.getElementById('ptiProgressBar').style.width = total?(checked/total*100)+'%':'0%';
+  document.getElementById('ptiProgressText').textContent = `${checked} / ${total} checked`;
+  // issue card
+  let issueCard = document.getElementById('ptiIssueCard');
+  issueCard.classList.toggle('show', failed>0);
+  // badge
+  let badge = document.getElementById('ptiStatusBadge');
+  if(checked===total && total>0){
+    badge.className='pti-status-badge '+(failed>0?'badge-warn':'badge-ok');
+    badge.textContent = failed>0 ? `⚠️ ${failed} Issue(s) Found` : '✅ All Clear';
+  } else {
+    badge.className='pti-status-badge badge-warn';
+    badge.textContent='⏳ In Progress';
+  }
+  // submit btn
+  let odoOk = (document.getElementById('ptiOdometer')?.value||'').trim().length>0;
+  document.getElementById('ptiSubmitBtn').disabled = !(checked===total && total>0 && odoOk);
+}
+function submitPTI(){
+  let odo = parseInt(document.getElementById('ptiOdometer').value)||0;
+  if(!odo) return toast('Odometer reading required','err');
+  let {daily,weekly} = getAllPtiItems();
+  let isMonday = new Date().getDay()===1;
+  let useWeekly = isMonday||driver.ptiSchedule==='weekly';
+  let allItems = useWeekly ? [...daily,...weekly] : daily;
+  let failed = allItems.filter(x=>ptiState[x.id]==='fail');
+  let issues = document.getElementById('ptiIssueText').value.trim();
+  let entry = {
+    id:'pti_'+Date.now(),
+    date: today(),
+    odometer: odo,
+    items: allItems.map(x=>({id:x.id,name:x.name,state:ptiState[x.id]||'ok'})),
+    issues: failed.length>0 ? issues : '',
+    passed: failed.length===0,
+    failCount: failed.length,
+    type: useWeekly?'weekly':'daily'
+  };
+  ptiLog.unshift(entry);
+  saveAll();
+  toast(failed.length>0 ? `PTI done — ${failed.length} issue(s) reported` : 'PTI completed ✅');
+  // try sync
+  syncPTIEntry(entry);
+  document.getElementById('ptiBlocker').classList.remove('show');
+  showApp();
+}
+function forcePTI(){
+  showPTIBlocker();
+}
+document.getElementById('ptiOdometer').addEventListener('input', ()=>updatePTIProgress());
+
+// ── APP ──
+function showApp(){
+  document.getElementById('app').classList.add('show');
+  renderAll();
+  scheduleAutoSync();
+}
+function showPage(name, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  else document.querySelector(`.navbtn[data-page="${name}"]`)?.classList.add('active');
+  if(name==='home') renderHome();
+  if(name==='pti') renderPTIPage();
+  if(name==='stats') renderStats();
+  if(name==='settings') renderSettingsPage();
+  if(name==='load') renderLoadPage();
+  if(name==='disputes') renderDriverDisputedPage();
+}
+function renderAll(){
+  renderHome();
+  renderLoadPage();
+  renderPTIPage();
+  renderStats();
+  renderSettingsPage();
+}
+
+// ── LOADS ──
+function getWeekLoads(){
+  let wk = getWeekKey(today());
+  return loads.filter(x=>getWeekKey(x.pickup||x.date||'')===wk);
+}
+function calcPreview(){
+  let loaded = parseFloat(document.getElementById('loadedMiles').value)||0;
+  let dead = parseFloat(document.getElementById('deadMiles').value)||0;
+  let gross = parseFloat(document.getElementById('grossInput').value)||0;
+  let total = loaded+dead;
+  let pay = calcDriverPay(gross, loaded, total);
+  document.getElementById('loadPreview').innerHTML =
+    `<div class="line"><span>Total Miles</span><strong>${total.toLocaleString()}</strong></div>
+     <div class="line"><span>My Pay</span><strong class="amber">${fmt(pay)}</strong></div>
+     <div class="line"><span>$/loaded mile</span><strong>${loaded?(pay/loaded).toFixed(3):'—'}</strong></div>`;
+}
+function resetLoadForm(){
+  document.getElementById('loadEditId').value='';
+  document.getElementById('loadId').value='';
+  document.getElementById('pickupDate').value=today();
+  document.getElementById('deliveryDate').value='';
+  document.getElementById('loadedMiles').value='';
+  document.getElementById('deadMiles').value='0';
+  document.getElementById('grossInput').value='';
+  document.getElementById('loadNotes').value='';
+  document.getElementById('loadPreview').innerHTML='';
+  document.getElementById('saveLoadBtn').textContent='Add Load';
+  document.getElementById('cancelEditBtn').style.display='none';
+}
+function saveLoad(){
+  let loadId = document.getElementById('loadId').value.trim();
+  let loaded = parseFloat(document.getElementById('loadedMiles').value)||0;
+  let gross = parseFloat(document.getElementById('grossInput').value)||0;
+  if(!loadId) return toast('Load ID required','err');
+  if(!loaded) return toast('Loaded miles required','err');
+  if(!gross) return toast('Gross required','err');
+  let dead = parseFloat(document.getElementById('deadMiles').value)||0;
+  let total = loaded+dead;
+  let pay = calcDriverPay(gross, loaded, total);
+  let editId = document.getElementById('loadEditId').value;
+  // dup check
+  if(!editId && loads.find(x=>x.loadId===loadId)){
+    return toast('Load ID already exists','err');
+  }
+  let entry = {
+    id: editId||('l_'+Date.now()),
+    loadId, gross,
+    loadedMiles:loaded, deadMiles:dead, totalMiles:total,
+    driverPay:pay,
+    pickup: document.getElementById('pickupDate').value,
+    delivery: document.getElementById('deliveryDate').value,
+    notes: document.getElementById('loadNotes').value.trim(),
+    unitNumber: driver.unitNumber,
+    driverName: driver.name,
+    synced: false
+  };
+  if(editId) loads = loads.map(x=>x.id===editId?entry:x);
+  else loads.unshift(entry);
+  saveAll();
+  resetLoadForm();
+  renderAll();
+  toast('Load saved');
+  doSync();
+}
+function editLoad(id){
+  let x = loads.find(l=>l.id===id); if(!x) return;
+  document.getElementById('loadEditId').value=x.id;
+  document.getElementById('loadId').value=x.loadId||'';
+  document.getElementById('pickupDate').value=x.pickup||'';
+  document.getElementById('deliveryDate').value=x.delivery||'';
+  document.getElementById('loadedMiles').value=x.loadedMiles||'';
+  document.getElementById('deadMiles').value=x.deadMiles||'0';
+  document.getElementById('grossInput').value=(x.gross||0).toFixed(2);
+  document.getElementById('loadNotes').value=x.notes||'';
+  document.getElementById('saveLoadBtn').textContent='Save Changes';
+  document.getElementById('cancelEditBtn').style.display='block';
+  calcPreview();
+  showPage('load');
+}
+function deleteLoad(id){
+  if(!confirm('Delete this load?')) return;
+  loads = loads.filter(x=>x.id!==id);
+  saveAll(); renderAll(); toast('Deleted');
+}
+
+// ── RENDER HOME ──
+function renderHome(){
+  let wkLoads = getWeekLoads();
+  let gross = wkLoads.reduce((s,x)=>s+Number(x.gross||0),0);
+  let pay = wkLoads.reduce((s,x)=>s+Number(x.driverPay||0),0);
+  let lmi = wkLoads.reduce((s,x)=>s+Number(x.loadedMiles||0),0);
+  let dmi = wkLoads.reduce((s,x)=>s+Number(x.deadMiles||0),0);
+  document.getElementById('homeWeekNet').textContent = fmt(pay);
+  document.getElementById('homeWeekSub').textContent = `gross ${fmt(gross)} · ${(lmi+dmi).toLocaleString()} mi · ${wkLoads.length} loads`;
+  document.getElementById('homeMyPay').textContent = fmt(pay);
+  document.getElementById('homeGross').textContent = fmt(gross);
+  document.getElementById('homeLoadedMi').textContent = lmi.toLocaleString();
+  document.getElementById('homeDeadMi').textContent = dmi.toLocaleString();
+  // recent loads
+  document.getElementById('homeLoads').innerHTML = loads.slice(0,5).map(x=>`
+    <div class="item">
+      <div class="item-inner">
+        <div>
+          <div class="item-title">${escHtml(x.loadId)}</div>
+          <div class="muted">${x.pickup||''}${x.delivery?' → '+x.delivery:''}</div>
+          <div class="muted">${(x.loadedMiles||0).toLocaleString()} loaded · ${(x.deadMiles||0).toLocaleString()} dead</div>
+        </div>
+        <div style="text-align:right">
+          <div class="item-title">${fmt(x.gross)}</div>
+          <div class="muted amber">${fmt(x.driverPay)}</div>
+          <div class="muted" style="font-size:10px">${x.synced?'☁️':'📱'}</div>
+        </div>
+      </div>
+    </div>`).join('')||'<div class="empty">No loads this week</div>';
+  // PTI status on home
+  let todayPTI = ptiLog.find(p=>p.date===today());
+  let ptiHtml = todayPTI
+    ? `<div class="line"><span>Today's PTI</span><span class="${todayPTI.passed?'green':'amber'}">${todayPTI.passed?'✅ Passed':'⚠️ Issues noted'}</span></div>
+       <div class="line"><span>Odometer</span><span>${(todayPTI.odometer||0).toLocaleString()} mi</span></div>`
+    : `<div style="color:var(--rd);font-weight:700;text-align:center;padding:10px">⚠️ PTI not completed today</div>
+       <button onclick="forcePTI()" class="btn primary" style="margin-top:8px;padding:10px">Run PTI Now</button>`;
+  document.getElementById('homePtiStatus').innerHTML = ptiHtml;
+}
+
+// ── RENDER LOAD PAGE ──
+function renderLoadPage(){
+  document.getElementById('allLoads').innerHTML = loads.map(x=>`
+    <div class="item">
+      <div class="item-inner">
+        <div>
+          <div class="item-title">${escHtml(x.loadId)}</div>
+          <div class="muted">${x.pickup||''}</div>
+          <div class="muted">${(x.loadedMiles||0).toLocaleString()} mi · ${fmt(x.gross)}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="item-title amber">${fmt(x.driverPay)}</div>
+          <div class="muted">${x.synced?'☁️ synced':'📱 local'}</div>
+        </div>
+      </div>
+      <div class="item-actions">
+        <button onclick="editLoad('${x.id}')">✏️ Edit</button>
+        <button onclick="deleteLoad('${x.id}')">🗑️ Delete</button>
+      </div>
+    </div>`).join('')||'<div class="empty">No loads yet</div>';
+}
+
+// ── RENDER PTI PAGE ──
+function renderPTIPage(){
+  document.getElementById('ptiHistory').innerHTML = ptiLog.slice(0,20).map(p=>`
+    <div class="pti-history-item">
+      <div>
+        <div style="font-weight:600">${p.date} <span class="muted">(${p.type||'daily'})</span></div>
+        <div class="muted">${p.failCount?`⚠️ ${p.failCount} issue(s)`:'✅ All clear'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:700">${(p.odometer||0).toLocaleString()} mi</div>
+        <div class="muted" style="font-size:10px">${p.passed?'Passed':'Issues'}</div>
+      </div>
+    </div>`).join('')||'<div class="empty">No PTI records</div>';
+  // odometer log
+  let odoEntries = ptiLog.filter(p=>p.odometer).slice(0,10);
+  document.getElementById('odoLog').innerHTML = odoEntries.length
+    ? odoEntries.map((p,i)=>{
+        let prev = odoEntries[i+1];
+        let diff = prev ? p.odometer - prev.odometer : null;
+        return `<div class="line"><span>${p.date}</span><span>${(p.odometer).toLocaleString()} mi${diff?' <span class="muted">(+'+diff.toLocaleString()+')</span>':''}</span></div>`;
+      }).join('')
+    : '<div class="muted" style="padding:10px">No odometer data</div>';
+}
+
+// ── RENDER STATS ──
+function renderStats(){
+  let period = document.getElementById('statsPeriod').value;
+  let t = today();
+  let filtered = loads;
+  if(period==='week'){
+    let wk=getWeekKey(t);
+    filtered=loads.filter(x=>getWeekKey(x.pickup||x.date||'')===wk);
+  } else if(period==='month'){
+    let ym=t.slice(0,7);
+    filtered=loads.filter(x=>(x.pickup||'').slice(0,7)===ym);
+  }
+  let gross=filtered.reduce((s,x)=>s+Number(x.gross||0),0);
+  let pay=filtered.reduce((s,x)=>s+Number(x.driverPay||0),0);
+  let lmi=filtered.reduce((s,x)=>s+Number(x.loadedMiles||0),0);
+  let dmi=filtered.reduce((s,x)=>s+Number(x.deadMiles||0),0);
+  let tmi=lmi+dmi;
+  document.getElementById('stGross').textContent=fmt(gross);
+  document.getElementById('stPay').textContent=fmt(pay);
+  document.getElementById('stLoadedMi').textContent=lmi.toLocaleString();
+  document.getElementById('stDeadMi').textContent=dmi.toLocaleString();
+  document.getElementById('stLoads').textContent=filtered.length;
+  document.getElementById('stAvgLoad').textContent=filtered.length?fmt(pay/filtered.length):'$0';
+  document.getElementById('stGpm').textContent=tmi?'$'+(gross/tmi).toFixed(2):'$0';
+  document.getElementById('stPpm').textContent=tmi?'$'+(pay/tmi).toFixed(2):'$0';
+  // weekly breakdown
+  let wkMap={};
+  loads.forEach(x=>{
+    let wk=getWeekKey(x.pickup||x.date||'');
+    if(!wk) return;
+    if(!wkMap[wk]) wkMap[wk]={gross:0,pay:0,loads:0,lmi:0};
+    wkMap[wk].gross+=Number(x.gross||0);
+    wkMap[wk].pay+=Number(x.driverPay||0);
+    wkMap[wk].loads+=1;
+    wkMap[wk].lmi+=Number(x.loadedMiles||0);
+  });
+  let wks=Object.keys(wkMap).sort().reverse().slice(0,8);
+  document.getElementById('weeklyBreakdown').innerHTML=wks.map(wk=>`
+    <div class="line">
+      <span><strong>Wk ${wk}</strong><br><span class="muted">${wkMap[wk].loads} loads · ${wkMap[wk].lmi.toLocaleString()} mi</span></span>
+      <span style="text-align:right"><strong>${fmt(wkMap[wk].pay)}</strong><br><span class="muted">gross ${fmt(wkMap[wk].gross)}</span></span>
+    </div>`).join('')||'<div class="muted" style="padding:10px">No data</div>';
+}
+
+// ── SETTINGS PAGE ──
+function renderSettingsPage(){
+  if(!driver) return;
+  document.getElementById('setCompany').value = driver.company||'';
+  document.getElementById('setTruckName').value = driver.truckName||'';
+  document.getElementById('setUnit').value = driver.unitNumber||'';
+  document.getElementById('setPlate').value = driver.plate||'';
+  document.getElementById('setName').value = driver.name||'';
+  document.getElementById('setTeamDriver').value = driver.teamDriver||'';
+  document.getElementById('setTeamRate').value = driver.teamRate||'';
+  document.getElementById('setPayType').value = driver.payType||'cpm';
+  document.getElementById('setCpmRate').value = driver.cpmRate||'';
+  document.getElementById('setGrossPct').value = driver.grossPercent||'';
+  document.getElementById('setCpmBase').value = driver.cpmBase||'loaded';
+  document.getElementById('setPtiSchedule').value = driver.ptiSchedule||'daily';
+  document.getElementById('setSyncUrl').value = driver.syncUrl||'';
+  toggleSetRateFields();
+  document.getElementById('ptiCustomItems').innerHTML=ptiCustom.map((x,i)=>`
+    <div class="line">
+      <span>${escHtml(x.name)}</span>
+      <button onclick="removeCustomPtiItem(${i})" style="background:none;border:none;color:var(--rd);cursor:pointer;font-size:18px">×</button>
+    </div>`).join('')||'<div class="muted" style="font-size:12px;padding:4px 0">No custom items</div>';
+}
+function toggleSetRateFields(){
+  let pt=document.getElementById('setPayType').value;
+  document.getElementById('setCpmRow').style.display=pt==='cpm'?'':'none';
+  document.getElementById('setGrossRow').style.display=pt==='gross_percent'?'':'none';
+  let hasTeam=(document.getElementById('setTeamDriver').value||'').trim();
+  document.getElementById('setTeamRateRow').style.display=hasTeam?'':'none';
+}
+function saveSettings(){
+  driver.company = document.getElementById('setCompany').value.trim();
+  driver.truckName = document.getElementById('setTruckName').value.trim();
+  driver.name = document.getElementById('setName').value.trim()||driver.name;
+  driver.unitNumber = document.getElementById('setUnit').value.trim()||driver.unitNumber;
+  driver.plate = document.getElementById('setPlate').value.trim();
+  driver.teamDriver = document.getElementById('setTeamDriver').value.trim();
+  driver.teamRate = parseFloat(document.getElementById('setTeamRate').value)||0;
+  driver.payType = document.getElementById('setPayType').value;
+  driver.cpmRate = parseFloat(document.getElementById('setCpmRate').value)||0;
+  driver.grossPercent = parseFloat(document.getElementById('setGrossPct').value)||0;
+  driver.cpmBase = document.getElementById('setCpmBase').value;
+  driver.ptiSchedule = document.getElementById('setPtiSchedule').value;
+  driver.syncUrl = document.getElementById('setSyncUrl').value.trim();
+  loads = loads.map(x=>({...x, driverPay:calcDriverPay(x.gross,x.loadedMiles,x.totalMiles)}));
+  saveAll();
+  boot(); // refresh header
+  renderAll();
+  toast('Settings saved');
+}
+function addCustomPtiItem(){
+  let name=document.getElementById('newPtiItem').value.trim();
+  if(!name) return toast('Enter item name','err');
+  ptiCustom.push({id:'c_'+Date.now(),name,desc:'Custom check'});
+  document.getElementById('newPtiItem').value='';
+  saveAll(); renderSettingsPage(); toast('Item added');
+}
+function removeCustomPtiItem(i){
+  ptiCustom.splice(i,1);
+  saveAll(); renderSettingsPage(); toast('Removed');
+}
+function resetApp(){
+  if(!confirm('Сбросить данные водителя?\n\nВсе рейсы и PTI будут синхронизированы с таблицей перед удалением.')) return;
+  // финальный sync перед сбросом
+  doSync().finally(()=>{
+    setTimeout(()=>{
+      if(confirm('Sync выполнен. Удалить данные водителя с устройства?')){
+        // сохраняем sync URL и настройки PTI для нового водителя
+        let url = driver?.syncUrl||'';
+        let ptiSched = driver?.ptiSchedule||'daily';
+        localStorage.clear();
+        // восстанавливаем URL чтобы новый водитель уже видел его
+        if(url) localStorage.setItem(K+'_savedSyncUrl', url);
+        if(ptiSched) localStorage.setItem(K+'_savedPtiSched', ptiSched);
+        location.reload();
+      }
+    }, 1500);
+  });
+}
+
+// ── EXPORT / SHARE ──
+function buildReportText(){
+  let gross = loads.reduce((s,x)=>s+Number(x.gross||0),0);
+  let pay   = loads.reduce((s,x)=>s+Number(x.driverPay||0),0);
+  let lmi   = loads.reduce((s,x)=>s+Number(x.loadedMiles||0),0);
+  let dmi   = loads.reduce((s,x)=>s+Number(x.deadMiles||0),0);
+  let tmi   = lmi+dmi;
+  let ppm   = tmi ? (pay/tmi).toFixed(3) : '0.000';
+  let lines = [
+    `FleetIQ Driver Report`,
+    `${'─'.repeat(30)}`,
+    driver.company ? `Company: ${driver.company}` : '',
+    `Driver: ${driver.name}${driver.teamDriver?' + '+driver.teamDriver:''}`,
+    `Truck: ${driver.truckName||''}  Unit: ${driver.unitNumber}  Plate: ${driver.plate||''}`,
+    `Date: ${new Date().toLocaleDateString('en-US')}`,
+    `${'─'.repeat(30)}`,
+    `SUMMARY`,
+    `Total Gross:   $${gross.toFixed(2)}`,
+    `My Pay:        $${pay.toFixed(2)}`,
+    `Loaded Miles:  ${lmi.toLocaleString()}`,
+    `Dead Miles:    ${dmi.toLocaleString()}`,
+    `Pay/Mile:      $${ppm}`,
+    `Loads:         ${loads.length}`,
+    `${'─'.repeat(30)}`,
+    `LOADS:`,
+    ...loads.map(l=>`${l.loadId||'?'} | ${l.pickup||''} | ${(l.loadedMiles||0).toLocaleString()}mi | $${(l.gross||0).toFixed(2)} gross | Pay: $${(l.driverPay||0).toFixed(2)}`),
+    `${'─'.repeat(30)}`,
+    `Generated by FleetIQ Driver v2`
+  ].filter(Boolean);
+  return lines.join('\n');
+}
+
+function buildReportHTML(){
+  let gross = loads.reduce((s,x)=>s+Number(x.gross||0),0);
+  let pay   = loads.reduce((s,x)=>s+Number(x.driverPay||0),0);
+  let lmi   = loads.reduce((s,x)=>s+Number(x.loadedMiles||0),0);
+  let dmi   = loads.reduce((s,x)=>s+Number(x.deadMiles||0),0);
+  let tmi   = lmi+dmi;
+  let ppm   = tmi?(pay/tmi).toFixed(3):'0.000';
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  body{font-family:Arial,sans-serif;max-width:700px;margin:40px auto;color:#1a1a1a;padding:20px}
+  h1{color:#f59e0b;margin-bottom:4px}
+  .sub{color:#64748b;font-size:13px;margin-bottom:24px}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+  .info-box{background:#f8fafc;border-radius:8px;padding:12px}
+  .info-label{font-size:10px;text-transform:uppercase;color:#64748b;margin-bottom:4px}
+  .info-val{font-size:20px;font-weight:700}
+  .amber{color:#f59e0b}.green{color:#10b981}
+  table{width:100%;border-collapse:collapse;margin-top:16px}
+  th{background:#1e293b;color:#f1f5f9;padding:8px 10px;text-align:left;font-size:12px}
+  td{padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:13px}
+  tr:nth-child(even) td{background:#f8fafc}
+  .footer{margin-top:24px;color:#94a3b8;font-size:11px;text-align:center}
+  .header-row{display:flex;justify-content:space-between;align-items:flex-start}
+</style></head><body>
+<div class="header-row">
+  <div>
+    <h1>FLEET<span style="color:#1e293b">IQ</span> Driver Report</h1>
+    <div class="sub">${escHtml(driver.company||'')} · ${escHtml(driver.name)}${driver.teamDriver?' + '+escHtml(driver.teamDriver):''} · Unit ${escHtml(driver.unitNumber)} ${driver.plate?'· '+escHtml(driver.plate):''}</div>
+  </div>
+  <div style="text-align:right;color:#64748b;font-size:12px">${new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+</div>
+<div class="info-grid">
+  <div class="info-box"><div class="info-label">Total Gross</div><div class="info-val">$${gross.toFixed(2)}</div></div>
+  <div class="info-box"><div class="info-label">My Pay</div><div class="info-val amber">$${pay.toFixed(2)}</div></div>
+  <div class="info-box"><div class="info-label">Loaded Miles</div><div class="info-val">${lmi.toLocaleString()}</div></div>
+  <div class="info-box"><div class="info-label">Pay/Mile</div><div class="info-val green">$${ppm}</div></div>
+  <div class="info-box"><div class="info-label">Dead Miles</div><div class="info-val">${dmi.toLocaleString()}</div></div>
+  <div class="info-box"><div class="info-label">Total Loads</div><div class="info-val">${loads.length}</div></div>
+</div>
+<table>
+  <tr><th>Load ID</th><th>Pickup</th><th>Loaded mi</th><th>Dead mi</th><th>Gross</th><th>Pay</th><th>$/mi</th></tr>
+  ${loads.map(l=>{
+    let tm=(l.loadedMiles||0)+(l.deadMiles||0);
+    let pm=tm?((l.driverPay||0)/tm).toFixed(3):'—';
+    return `<tr><td><b>${escHtml(l.loadId||'?')}</b></td><td>${l.pickup||''}</td><td>${(l.loadedMiles||0).toLocaleString()}</td><td>${(l.deadMiles||0).toLocaleString()}</td><td>$${(l.gross||0).toFixed(2)}</td><td><b>$${(l.driverPay||0).toFixed(2)}</b></td><td>$${pm}</td></tr>`;
+  }).join('')}
+  <tr style="background:#1e293b;color:#f1f5f9">
+    <td colspan="2"><b>TOTAL</b></td>
+    <td><b>${lmi.toLocaleString()}</b></td>
+    <td><b>${dmi.toLocaleString()}</b></td>
+    <td><b>$${gross.toFixed(2)}</b></td>
+    <td><b style="color:#f59e0b">$${pay.toFixed(2)}</b></td>
+    <td><b>$${ppm}</b></td>
+  </tr>
+</table>
+<div class="footer">Generated by FleetIQ Driver v2 · ${new Date().toISOString()}</div>
+</body></html>`;
+}
+
+function exportDriverData(format){
+  let fn = `FleetIQ_${driver?.unitNumber||'?'}_${new Date().toISOString().slice(0,10)}`;
+  if(format==='csv'){
+    let rows=[['Load ID','Pickup','Delivery','Loaded mi','Dead mi','Total mi','Gross$','My Pay$','$/mi','Notes']];
+    loads.forEach(l=>{
+      let tmi=(l.loadedMiles||0)+(l.deadMiles||0);
+      let ppm=tmi?((l.driverPay||0)/tmi).toFixed(3):0;
+      rows.push([l.loadId||'',l.pickup||'',l.delivery||'',l.loadedMiles||0,l.deadMiles||0,tmi,(l.gross||0).toFixed(2),(l.driverPay||0).toFixed(2),ppm,l.notes||'']);
+    });
+    downloadFile(rows.map(r=>r.join(',')).join('\n'),'text/csv',fn+'.csv');
+    toast('CSV downloaded');
+  } else if(format==='pdf'){
+    // Генерируем HTML и открываем диалог печати — браузер сохраняет как PDF
+    let html = buildReportHTML();
+    let blob = new Blob([html],{type:'text/html'});
+    let url = URL.createObjectURL(blob);
+    let win = window.open(url,'_blank');
+    if(win){
+      win.onload = ()=>{ win.print(); URL.revokeObjectURL(url); };
+    } else {
+      // Fallback — скачать HTML файл
+      downloadFile(html,'text/html',fn+'.html');
+      toast('Open the file and print → Save as PDF');
+    }
+  }
+}
+
+function shareReport(channel){
+  let text = buildReportText();
+  let encoded = encodeURIComponent(text);
+  let subject = encodeURIComponent(`FleetIQ Report — ${driver?.name} Unit ${driver?.unitNumber} — ${new Date().toLocaleDateString()}`);
+  if(channel==='whatsapp'){
+    window.open(`https://wa.me/?text=${encoded}`);
+  } else if(channel==='email'){
+    window.open(`mailto:?subject=${subject}&body=${encoded}`);
+  } else if(channel==='telegram'){
+    window.open(`https://t.me/share/url?url=FleetIQ&text=${encoded}`);
+  }
+}
+
+function downloadFile(content, type, filename){
+  let blob=new Blob([content],{type});
+  let a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ── DISPUTED (DRIVER) ──
+function getDriverDisputed(){ return JSON.parse(localStorage.getItem(K+'disputed')||'[]'); }
+function setDriverDisputed(v){ localStorage.setItem(K+'disputed',JSON.stringify(v)); }
+
+function renderDriverDisputedPage(){
+  let list=getDriverDisputed();
+  let pending=list.filter(x=>x.status==='pending');
+  let html='';
+  if(pending.length){
+    html+=`<div class="card" style="border-color:var(--acc);background:rgba(245,158,11,.08)">
+      <div style="font-weight:700;color:var(--acc);margin-bottom:8px">⚠️ ${pending.length} рейс(ов) в споре</div>
+      ${pending.map(x=>`<div class="line"><span><strong>${escapeHtml(x.loadId)}</strong> · ${x.date||''}</span><span class="amber">$${(x.amount||0).toFixed(2)}</span></div>`).join('')}
+    </div>`;
+  }
+  html+=list.map(x=>{
+    let sc={pending:'var(--acc)',won:'var(--gr)',lost:'var(--rd)'};
+    let sl={pending:'⏳ В ожидании',won:'✅ Выиграно',lost:'❌ Отказано'};
+    return `<div class="item"><div class="item-inner">
+      <div>
+        <div class="item-title">${escapeHtml(x.loadId||'—')}</div>
+        <div class="muted">Открыт ${x.date||''}</div>
+        <div class="muted">${escapeHtml(x.note||'')}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:700;color:${sc[x.status]||'var(--tx)'}">$${(x.amount||0).toFixed(2)}</div>
+        <div class="muted" style="color:${sc[x.status]}">${sl[x.status]||x.status}</div>
+      </div>
+    </div>
+    <div class="item-actions">
+      ${x.status==='pending'
+        ?`<button onclick="driverResolveDispute('${x.id}','won')" style="color:var(--gr)">✅ Выиграно</button>
+           <button onclick="driverResolveDispute('${x.id}','lost')" style="color:var(--rd)">❌ Отказано</button>`
+        :`<button onclick="driverReopenDispute('${x.id}')" style="color:var(--acc)">🔄 Переоткрыть</button>`}
+      <button onclick="driverDeleteDispute('${x.id}')">🗑️</button>
+    </div></div>`;
+  }).join('')||'<div class="empty">Нет спорных рейсов</div>';
+  document.getElementById('driverDisputedList').innerHTML=html;
+}
+function addDriverDisputed(){
+  let loadId=document.getElementById('dDisputeLoadId').value.trim();
+  if(!loadId) return toast('Load ID required','err');
+  let item={
+    id:'dd_'+Date.now(),loadId,
+    amount:parseFloat(document.getElementById('dDisputeAmount').value)||175,
+    date:new Date().toISOString().slice(0,10),
+    note:document.getElementById('dDisputeNote').value.trim(),
+    status:'pending',resolvedDate:null
+  };
+  let list=getDriverDisputed(); list.push(item); setDriverDisputed(list);
+  document.getElementById('dDisputeLoadId').value='';
+  document.getElementById('dDisputeAmount').value='';
+  document.getElementById('dDisputeNote').value='';
+  renderDriverDisputedPage(); toast('Added to disputes');
+}
+function driverResolveDispute(id,status){
+  let list=getDriverDisputed();
+  let item=list.find(x=>x.id===id); if(!item) return;
+  item.status=status; item.resolvedDate=new Date().toISOString().slice(0,10);
+  setDriverDisputed(list); renderDriverDisputedPage();
+  toast(status==='won'?'✅ Won! Add load manually':'Closed — denied');
+}
+function driverReopenDispute(id){
+  let list=getDriverDisputed();
+  let item=list.find(x=>x.id===id); if(!item) return;
+  item.status='pending'; item.resolvedDate=null;
+  setDriverDisputed(list); renderDriverDisputedPage(); toast('Reopened');
+}
+function driverDeleteDispute(id){
+  if(!confirm('Delete?')) return;
+  setDriverDisputed(getDriverDisputed().filter(x=>x.id!==id));
+  renderDriverDisputedPage(); toast('Deleted');
+}
+
+// ── SYNC ──
+function buildSyncPayload(){
+  return {
+    type:'driver_report',
+    sentAt: new Date().toISOString(),
+    driver: { name:driver.name, unitNumber:driver.unitNumber },
+    loads: loads.filter(x=>!x.synced),
+    ptiLog: ptiLog.filter(p=>!p.synced).slice(0,10),
+  };
+}
+async function doSync(){
+  if(!driver?.syncUrl){ setSyncUI('idle','No sync URL'); return; }
+  setSyncUI('busy','Syncing...');
+  try {
+    let payload = buildSyncPayload();
+    let resp = await fetch(driver.syncUrl, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify(payload),
+      redirect:'follow'
+    });
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    let text = await resp.text();
+    let result = {}; try{ result=JSON.parse(text); }catch(e){}
+    if(result.error) throw new Error(result.error);
+    loads = loads.map(x=>({...x,synced:true}));
+    ptiLog = ptiLog.map(p=>({...p,synced:true}));
+    saveAll();
+    setSyncUI('ok','Synced '+new Date().toLocaleTimeString());
+    toast('Synced ✅');
+  } catch(e){
+    setSyncUI('err','Failed: '+e.message);
+    toast('Sync failed: '+e.message,'err');
+  }
+}
+async function syncPTIEntry(entry){
+  if(!driver?.syncUrl) return;
+  try {
+    await fetch(driver.syncUrl, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({
+        type:'pti_report',
+        sentAt: new Date().toISOString(),
+        driver:{ name:driver.name, unitNumber:driver.unitNumber },
+        pti: entry
+      }),
+      redirect:'follow'
+    });
+    entry.synced=true; saveAll();
+  } catch(e){}
+}
+function setSyncUI(state, msg){
+  let dot=document.getElementById('syncDot');
+  let txt=document.getElementById('syncStatus');
+  if(!dot||!txt) return;
+  dot.className='sync-dot'+(state==='ok'?' ok':state==='err'?' err':state==='busy'?' busy':'');
+  txt.textContent=msg;
+}
+function scheduleAutoSync(){
+  // auto sync every 6 hours
+  clearInterval(autoSyncTimer);
+  autoSyncTimer=setInterval(()=>doSync(), 6*60*60*1000);
+  // also sync at midnight to send daily report
+  let now=new Date();
+  let msToMidnight=(new Date(now.getFullYear(),now.getMonth(),now.getDate()+1)-now);
+  setTimeout(()=>{
+    doSync();
+    scheduleAutoSync();
+  }, msToMidnight);
+}
+
+// ── INIT ──
+loadAll();
+// restore saved sync URL if starting fresh after driver reset
+let _savedUrl = localStorage.getItem(K+'_savedSyncUrl');
+let _savedSched = localStorage.getItem(K+'_savedPtiSched');
+if(_savedUrl && document.getElementById('setupSyncUrl'))
+  document.getElementById('setupSyncUrl').value = _savedUrl;
+if(_savedSched && document.getElementById('setupPtiSchedule'))
+  document.getElementById('setupPtiSchedule').value = _savedSched;
+document.getElementById('pickupDate').value = today();
+boot();
+</script>
+</body>
+</html>
