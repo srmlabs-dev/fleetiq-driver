@@ -1,0 +1,27 @@
+{
+  "name": "FleetIQ Driver",
+  "short_name": "FleetIQ",
+  "description": "Driver settlement, PTI, and load tracking by SRM Labs",
+  "start_url": "/fleetiq-driver/",
+  "scope": "/fleetiq-driver/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0e1a",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en-US"
+}
